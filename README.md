@@ -8,7 +8,8 @@
 
 - [完整操作與維護說明](Mstech.IisSslManager/README.md)
 - [版本紀錄](Mstech.IisSslManager/CHANGELOG.md)
-- [PDF 安裝操作說明書（v1.2 基本流程）](Mstech.IisSslManager/output/pdf/MSTECH-IIS-SSL-v1.2-安裝操作說明書.pdf)；v1.3 新功能與差異請看目前 README。
+- [PDF 安裝操作說明書 v1.3](Mstech.IisSslManager/output/pdf/MSTECH-IIS-SSL-v1.3-安裝操作說明書.pdf)：12 頁繁體中文手冊，含初次安裝／升級、NAT 黃色警告、Staging、網域增減、唯讀狀態首頁及自動續期。
+- [PDF 手冊產生與驗證方式](Mstech.IisSslManager/docs/manual/README.md)
 - [程式維護安全規則](Mstech.IisSslManager/AGENTS.md)
 - [Windows Server 實機驗收清單](移交文件/03-Windows-Server實機驗收清單.md)
 - [第三方參考來源及 SHA-256](references/README.md)

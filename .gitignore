@@ -6,6 +6,8 @@
 **/.idea/
 **/ui-review/
 **/TestResults/
+**/tmp/pdfs/
+**/__pycache__/
 *.user
 *.suo
 *.userosscache

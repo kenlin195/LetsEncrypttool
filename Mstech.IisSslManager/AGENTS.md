@@ -81,4 +81,4 @@
 
 - 自動測試覆蓋純邏輯與靜態安全 invariant；發行前仍須在乾淨的 Windows Server 2016+ IIS 測試機做 UAC、Staging、Production、renewal、rollback、30 天腳本模擬及重新開機後排程驗證。
 - 本開發工作區的驗證不得被描述成已完成真實網域簽發或真實 IIS 變更。
-- 發行包暫保留標示 v1.2 的舊 PDF 基本手冊，v1.3 差異以 README 為準，不可聲稱 PDF 已更新。
+- 目前 PDF 安裝手冊已同步 v1.3，共 12 頁；可維護來源在 `docs/manual/`。`output/pdf/` 根層只放現行手冊，v1.2 存於 `output/pdf/archive/`。修改後須逐頁渲染確認，重新發行使用新 OutputRoot 保留舊包；不得把舊包描述成已包含新版手冊。

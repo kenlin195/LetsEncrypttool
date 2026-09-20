@@ -5,7 +5,7 @@
 
 這是一套給 Windows Server 2016 以上、IIS 10、x64 Desktop Experience 使用的繁體中文管理工具。它透過 win-acme 與 Let’s Encrypt，完成環境檢查、Staging 外部驗證、正式憑證申請、IIS HTTPS Binding 更新及背景自動續期。
 
-基本安裝、DNS／NAT 與 Staging 流程可參閱發行包內既有的 `MSTECH-IIS-SSL-v1.2-安裝操作說明書.pdf`。該 PDF 是 v1.2 舊版圖文手冊，尚未重製；v1.3 新畫面與行為以本 README 及 CHANGELOG 為準。
+完整安裝、DNS／NAT、Staging 與日常維護流程請參閱 [v1.3 PDF 安裝操作說明書](output/pdf/MSTECH-IIS-SSL-v1.3-安裝操作說明書.pdf)。新版共 12 頁，已同步狀態首頁、排程檢查、SNI、網域增減確認及通知限制；[可維護來源與產生方式](docs/manual/README.md)亦已納入專案。v1.2 舊手冊保留於 `output/pdf/archive/`，新版發行包只收錄 v1.3 PDF。
 
 ## v1.3 使用重點
 
@@ -16,7 +16,7 @@
 - 正式成功後仍需檢查排程；v1.3 額外核對正式環境完整參數、每日有效觸發條件及未來執行時間。排程不符不會撤銷已驗證的有效憑證，但會明確提示人工處理。
 - 「上次排程執行成功」不表示當次有換發憑證；請搭配目前憑證期限及 win-acme 紀錄確認。
 - 正式操作應安排在維護時段，避免同時由第二個工具視窗、背景續期或其他管理員修改 IIS。現有失敗復原仍使用完整 IIS 設定備份，不是跨程序交易鎖。
-- 聯絡信箱只供 ACME 帳號聯絡，**填寫信箱不會啟用告警**。Let’s Encrypt 已停止到期提醒郵件；win-acme 郵件通知須另行設定、測試 SMTP。本工具仍不提供寄信或 Teams 告警。
+- 聯絡信箱只供 ACME 帳號聯絡，**填寫信箱不會啟用告警**。Let’s Encrypt 已停止到期提醒郵件；本工具不提供 SMTP 或 Teams 通知介面。受控 `settings.json` 會在下載及 Staging／正式操作前重建，自行填入的 SMTP 可能被覆寫，請由管理員另行規劃並測試通知或外部監控。
 
 通知官方說明：[Let’s Encrypt](https://letsencrypt.org/docs/expiration-emails/)；[win-acme](https://www.win-acme.com/manual/automatic-renewal)。
 
@@ -88,7 +88,7 @@
 
 ## Log 與故障排除
 
-- 介面設定與一般 Log：`%LocalAppData%\MSTECH\IisSslManager`。
+- 一般權限的介面設定與 Log：`%LocalAppData%\MSTECH\IisSslManager`；管理員 GUI 可能改用受控 `%ProgramData%\MSTECH-IisSslManager` 根目錄。請由「開啟 Log 資料夾」確認實際紀錄位置。
 - 需要系統權限的 win-acme 狀態與 Log：`%ProgramData%\MSTECH-IisSslManager\win-acme-state`。
 - 警告與錯誤在權限允許時也會寫入 Windows Application Event Log。
 - 本工具管理的 win-acme Log 位於 `%ProgramData%\MSTECH-IisSslManager\win-acme-state\Logs`。
