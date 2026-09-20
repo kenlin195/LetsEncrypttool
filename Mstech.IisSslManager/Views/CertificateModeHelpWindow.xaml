@@ -1,0 +1,75 @@
+<Window x:Class="Mstech.IisSslManager.Views.CertificateModeHelpWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="申請模式與必要條件"
+        Width="720"
+        Height="650"
+        MinWidth="620"
+        MinHeight="560"
+        ResizeMode="CanResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock FontSize="23" FontWeight="SemiBold" Text="選擇哪一種模式？" />
+            <TextBlock Margin="0,7,0,16"
+                       Foreground="{StaticResource MutedTextBrush}"
+                       Text="目前版本提供一般網域與 SAN 多網域，兩者皆透過 HTTP-01 驗證。" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" Text="一般網域（單一名稱）" />
+                        <TextBlock Margin="0,7,0,10" Text="適合只保護一個明確名稱，例如 www.example.com。" />
+                        <TextBlock FontWeight="SemiBold" Text="必須完成：" />
+                        <TextBlock Margin="12,5,0,0" Text="• 公開 A／AAAA／CNAME 最後指向本 IIS 或可轉送驗證的前端設備。" />
+                        <TextBlock Margin="12,5,0,0" Text="• Internet 可連入 TCP 80。" />
+                        <TextBlock Margin="12,5,0,0" Text="• /.well-known/acme-challenge/ 不被登入、WAF 或 Rewrite 阻擋。" />
+                        <TextBlock Margin="12,5,0,0" Text="• CAA 未限制簽發，或已允許 letsencrypt.org。" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" Text="SAN 多網域" />
+                        <TextBlock Margin="0,7,0,10" Text="同一張憑證包含多個明確名稱，例如 example.com、www.example.com、api.example.com。" />
+                        <TextBlock FontWeight="SemiBold" Text="必須完成：" />
+                        <TextBlock Margin="12,5,0,0" Text="• 每個名稱都要分別符合一般網域的 DNS、Port 80、Challenge 路徑與 CAA 條件。" />
+                        <TextBlock Margin="12,5,0,0" Text="• 所有名稱須屬於同一個 IIS 網站的管理範圍。" />
+                        <TextBlock Margin="12,5,0,0" Text="• 任一名稱驗證失敗，整張 SAN 憑證不會簽發。" />
+                    </StackPanel>
+                </Border>
+
+                <Border Padding="16" Margin="0,0,0,14" Background="#FFF7E8" CornerRadius="7">
+                    <StackPanel>
+                        <TextBlock FontWeight="SemiBold" Foreground="#725018" Text="關於 DNS TXT 與 Wildcard" />
+                        <TextBlock Margin="0,6,0,0" Foreground="#725018" Text="一般網域與 SAN 不需要新增 _acme-challenge TXT。只有申請 *.example.com 這類 Wildcard 時，才必須使用 DNS-01 與 DNS API；目前不支援 Wildcard。" />
+                    </StackPanel>
+                </Border>
+
+                <Border Padding="16" Margin="0,0,0,14" Background="#EDF5FB" CornerRadius="7">
+                    <StackPanel>
+                        <TextBlock FontWeight="SemiBold" Foreground="{StaticResource PrimaryDarkBrush}" Text="工具如何確認？" />
+                        <TextBlock Margin="0,6,0,0" Foreground="{StaticResource PrimaryDarkBrush}" Text="先檢查 DNS、CAA、IIS Binding、HTTP-01 路徑、win-acme、權限與網路；必要條件通過後，再執行 Let’s Encrypt Staging 外部驗證。" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Button Grid.Row="2"
+                Width="92"
+                Margin="0,12,0,0"
+                HorizontalAlignment="Right"
+                IsDefault="True"
+                IsCancel="True"
+                Content="關閉" />
+    </Grid>
+</Window>

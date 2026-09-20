@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>MSTECH.IisSslManager</AssemblyName>
+    <RootNamespace>Mstech.IisSslManager</RootNamespace>
+    <Version>1.3.0</Version>
+    <FileVersion>1.3.0.0</FileVersion>
+    <AssemblyVersion>1.3.0.0</AssemblyVersion>
+    <Authors>MSTECH LTD.</Authors>
+    <Company>名世科技有限公司</Company>
+    <Product>MSTECH IIS SSL 自動更新工具</Product>
+    <Description>IIS、win-acme 與 Let's Encrypt 憑證自動化管理工具</Description>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>false</PublishSingleFile>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Mstech.IisSslManager.SmokeTests" />
+    <Using Include="System.IO" />
+    <Using Include="System.Net.Http" />
+    <EmbeddedResource Include="Scripts\CertificateRetention.ps1" />
+    <Resource Include="Assets\mstech-logo.jpg" />
+    <None Update="README.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="CHANGELOG.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AGENTS.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

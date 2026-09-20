@@ -1,0 +1,623 @@
+<Window x:Class="Mstech.IisSslManager.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Mstech.IisSslManager.ViewModels"
+        xmlns:infra="clr-namespace:Mstech.IisSslManager.Infrastructure"
+        mc:Ignorable="d"
+        Title="MSTECH IIS SSL 自動更新工具"
+        Width="1240"
+        Height="820"
+        MinWidth="1080"
+        MinHeight="700"
+        WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <Style x:Key="TopTabItemStyle" TargetType="TabItem">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="18,12" />
+            <Setter Property="Margin" Value="0,0,3,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="TabBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="Transparent"
+                                BorderThickness="0,0,0,3"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter ContentSource="Header" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="TabBorder" Property="Background" Value="#F1F7FB" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ModeRadioStyle" TargetType="RadioButton">
+            <Setter Property="Margin" Value="0,0,14,0" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style x:Key="StatusPillStyle" TargetType="Border">
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="9,3" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Background="{StaticResource WindowBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Menu Grid.Row="0" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <MenuItem Header="檔案(_F)">
+                <MenuItem Header="結束(_X)" Click="ExitMenuItem_OnClick" />
+            </MenuItem>
+            <MenuItem Header="工具(_T)">
+                <MenuItem Header="重新讀取 IIS 網站" Command="{Binding RefreshSitesCommand}" />
+                <MenuItem Header="重新整理憑證與續期狀態（唯讀）" Command="{Binding RefreshMaintenanceCommand}" />
+                <MenuItem Header="執行環境檢查" Command="{Binding RunPreflightCommand}" />
+                <Separator />
+                <MenuItem Header="開啟 Log 資料夾" Command="{Binding OpenLogFolderCommand}" />
+            </MenuItem>
+            <MenuItem Header="說明(_H)">
+                <MenuItem Header="申請模式與必要條件" Click="ModeHelpMenuItem_OnClick" />
+                <Separator />
+                <MenuItem Header="關於本軟體與使用聲明" Click="AboutMenuItem_OnClick" />
+            </MenuItem>
+        </Menu>
+
+        <Border Grid.Row="1" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <Grid Margin="24,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock FontSize="23" FontWeight="SemiBold" Text="IIS SSL 自動更新" />
+                    <TextBlock Margin="0,4,0,0"
+                               Style="{StaticResource CaptionStyle}"
+                               Text="由 win-acme 與 Let’s Encrypt 提供憑證申請、自動續期及 IIS Binding 更新" />
+                </StackPanel>
+                <Border Grid.Column="1"
+                        Padding="12,7"
+                        Background="#EAF3FA"
+                        BorderBrush="#C6DEEF"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="9" Height="9" Margin="0,0,7,0" Fill="{StaticResource PrimaryBrush}" />
+                        <TextBlock VerticalAlignment="Center" FontSize="12.5" Foreground="{StaticResource PrimaryDarkBrush}">
+                            <Run Text="{x:Static infra:AppVersion.DisplayVersion}" /><Run Text="・本機 IIS" />
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <TabControl Grid.Row="2"
+                    Margin="24,10,24,0"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    IsEnabled="{Binding IsNotBusy}"
+                    SelectedIndex="{Binding SelectedTabIndex}"
+                    ItemContainerStyle="{StaticResource TopTabItemStyle}">
+            <TabItem Header="憑證與續期狀態">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="0,14,0,12" TextElement.Foreground="{StaticResource TextBrush}">
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <DockPanel LastChildFill="True">
+                                    <Button DockPanel.Dock="Right" Margin="16,0,0,0" VerticalAlignment="Top"
+                                            Command="{Binding RefreshMaintenanceCommand}" Content="重新整理狀態（唯讀）" />
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource SectionTitleStyle}" Text="本機憑證與自動續期" />
+                                        <TextBlock Style="{StaticResource CaptionStyle}" Text="{Binding MaintenanceCheckedAt}" />
+                                    </StackPanel>
+                                </DockPanel>
+                                <TextBlock Margin="0,12,0,0" TextWrapping="Wrap" Text="{Binding MaintenanceSummary}" />
+                                <TextBlock Margin="0,8,0,0" Style="{StaticResource CaptionStyle}" TextWrapping="Wrap"
+                                           Text="這是查詢當下的本機快照，不會簽發、續期或修改 IIS／排程，也不代表已驗證 Internet HTTPS。要申請憑證，請切換到「1 申請設定」。" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitleStyle}" Text="IIS HTTPS 443 憑證" />
+                                <TextBlock Style="{StaticResource CaptionStyle}" Text="依 Binding 顯示目前憑證；到期前 30 天提醒。不會讀取或匯出私鑰。" />
+                                <ItemsControl ItemsSource="{Binding MaintenanceCertificates}" Margin="0,10,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,12">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="2*" />
+                                                        <ColumnDefinition Width="190" />
+                                                        <ColumnDefinition Width="3*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Margin="0,0,16,0">
+                                                        <TextBlock FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding Host}" />
+                                                        <TextBlock Style="{StaticResource CaptionStyle}" TextWrapping="Wrap" Text="{Binding Site}" />
+                                                    </StackPanel>
+                                                    <TextBlock Grid.Column="1" Margin="0,0,16,0" TextWrapping="Wrap" Text="{Binding Expiry}" />
+                                                    <StackPanel Grid.Column="2">
+                                                        <TextBlock TextWrapping="Wrap" Text="{Binding Summary}" />
+                                                        <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionStyle}" TextWrapping="Wrap" Text="{Binding Certificate}" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitleStyle}" Text="工具管理的 SYSTEM 續期排程" />
+                                <TextBlock Style="{StaticResource CaptionStyle}" TextWrapping="Wrap"
+                                           Text="上次排程執行成功不等於當次有換發憑證；實際續期結果需核對 win-acme 紀錄及憑證到期日。" />
+                                <ItemsControl ItemsSource="{Binding MaintenanceTasks}" Margin="0,10,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,12">
+                                                <StackPanel>
+                                                    <TextBlock FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding Name}" />
+                                                    <TextBlock Margin="0,5,0,0" TextWrapping="Wrap" Text="{Binding Summary}" />
+                                                    <TextBlock Margin="0,5,0,0" Style="{StaticResource CaptionStyle}" TextWrapping="Wrap" Text="{Binding Schedule}" />
+                                                    <TextBlock Style="{StaticResource CaptionStyle}" TextWrapping="Wrap" Text="{Binding LastExecution}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource CardStyle}" Background="#FFF8E9">
+                            <TextBlock TextWrapping="Wrap" Foreground="#725018"
+                                       Text="通知說明：聯絡信箱僅供 ACME 帳號聯絡，不會自動啟用異常或到期通知。Let’s Encrypt 已停止到期提醒郵件；win-acme 郵件告警須另行設定並測試 SMTP。本工具目前不會自動寄送通知。" />
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="1  申請設定">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <Grid Margin="0,14,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="3*" />
+                            <ColumnDefinition Width="18" />
+                            <ColumnDefinition Width="2*" MinWidth="330" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <Border Style="{StaticResource CardStyle}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="IIS 網站" />
+                                            <TextBlock Style="{StaticResource CaptionStyle}" Text="目前版本只在同一個 IIS 網站內建立憑證，不跨站台合併。" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Command="{Binding RefreshSitesCommand}" Content="重新讀取" />
+                                    </Grid>
+                                    <TextBlock Margin="0,16,0,6" FontWeight="SemiBold" Text="選擇網站" />
+                                    <ComboBox ItemsSource="{Binding Sites}"
+                                              SelectedItem="{Binding SelectedSite}"
+                                              DisplayMemberPath="DisplayName"
+                                              IsEnabled="{Binding IsNotBusy}" />
+                                    <TextBlock Margin="0,7,0,0"
+                                               Style="{StaticResource CaptionStyle}"
+                                               Text="工具會檢查站台狀態、Port 80 主機名稱、現有 HTTPS Binding 與衝突。" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource CardStyle}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="憑證網域" />
+                                            <TextBlock Style="{StaticResource CaptionStyle}" Text="一般網域與 SAN 都使用 HTTP-01；不需新增 DNS TXT 記錄。" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Style="{StaticResource InfoButtonStyle}" Click="ModeHelpButton_OnClick" />
+                                    </Grid>
+
+                                    <StackPanel Margin="0,16,0,14" Orientation="Horizontal">
+                                        <RadioButton GroupName="CertificateMode"
+                                                     Style="{StaticResource ModeRadioStyle}"
+                                                     Content="一般網域（單一名稱）"
+                                                     IsChecked="{Binding IsSingleDomain}" />
+                                        <RadioButton GroupName="CertificateMode"
+                                                     Style="{StaticResource ModeRadioStyle}"
+                                                     Content="SAN 多網域"
+                                                     IsChecked="{Binding IsSanMode}" />
+                                    </StackPanel>
+
+                                    <Grid Visibility="{Binding IsSingleDomain, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <TextBox Text="{Binding SingleDomain, UpdateSourceTrigger=PropertyChanged}"
+                                                 ToolTip="例如：www.example.com" />
+                                        <TextBlock Grid.Row="1" Margin="0,7,0,0" Style="{StaticResource CaptionStyle}">
+                                            <Run Text="範例：www.example.com。DNS 必須解析到可收到 Port 80 請求的 IIS／前端設備。" />
+                                        </TextBlock>
+                                    </Grid>
+
+                                    <Grid Visibility="{Binding IsSanMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <ListView MinHeight="132"
+                                                  MaxHeight="250"
+                                                  ItemsSource="{Binding Domains}"
+                                                  SelectedItem="{Binding SelectedDomain}"
+                                                  BorderBrush="{StaticResource BorderBrush}"
+                                                  BorderThickness="1">
+                                            <ListView.View>
+                                                <GridView>
+                                                    <GridViewColumn Header="網域名稱" Width="270">
+                                                        <GridViewColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <TextBox Width="250"
+                                                                         Margin="2"
+                                                                         Text="{Binding HostName, UpdateSourceTrigger=PropertyChanged}"
+                                                                         ToolTip="例如：api.example.com" />
+                                                            </DataTemplate>
+                                                        </GridViewColumn.CellTemplate>
+                                                    </GridViewColumn>
+                                                    <GridViewColumn Header="狀態" Width="105">
+                                                        <GridViewColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <Border Style="{StaticResource StatusPillStyle}"
+                                                                        Background="{Binding StatusBackground}">
+                                                                    <TextBlock Foreground="{Binding StatusTextBrush}" FontSize="12" Text="{Binding StatusText}" />
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </GridViewColumn.CellTemplate>
+                                                    </GridViewColumn>
+                                                    <GridViewColumn Header="說明" Width="220" DisplayMemberBinding="{Binding Detail}" />
+                                                    <GridViewColumn Header="" Width="74">
+                                                        <GridViewColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <Button MinHeight="28"
+                                                                        Padding="9,3"
+                                                                        Style="{StaticResource DangerButtonStyle}"
+                                                                        Content="移除"
+                                                                        Command="{Binding DataContext.RemoveDomainCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                        CommandParameter="{Binding}" />
+                                                            </DataTemplate>
+                                                        </GridViewColumn.CellTemplate>
+                                                    </GridViewColumn>
+                                                </GridView>
+                                            </ListView.View>
+                                        </ListView>
+                                        <Button Grid.Row="1"
+                                                Margin="0,10,0,0"
+                                                HorizontalAlignment="Left"
+                                                Command="{Binding AddDomainCommand}"
+                                                Content="＋ 新增網域" />
+                                        <TextBlock Grid.Row="2" Margin="0,8,0,0" Style="{StaticResource CaptionStyle}" Text="每個 SAN 名稱都必須各自通過公開 DNS 與 HTTP-01 驗證；任一名稱失敗，整張憑證不會簽發。" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource CardStyle}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Let’s Encrypt 帳號" />
+                                    <TextBlock Style="{StaticResource CaptionStyle}" Text="此信箱用於 ACME 帳號聯絡，不會自動啟用異常或到期通知；郵件告警須另外設定。" />
+                                    <TextBlock Margin="0,15,0,6" FontWeight="SemiBold" Text="聯絡信箱" />
+                                    <TextBox Text="{Binding ContactEmail, UpdateSourceTrigger=PropertyChanged}" ToolTip="例如：admin@example.com" />
+                                    <CheckBox Margin="0,15,0,0" IsChecked="{Binding AcceptTerms}">
+                                        <TextBlock Text="我同意 Let’s Encrypt 服務條款" />
+                                    </CheckBox>
+                                    <CheckBox Margin="0,10,0,0" IsChecked="{Binding AcknowledgeCertificateTransparency}">
+                                        <TextBlock MaxWidth="700" Text="我了解憑證所含的網域會公布於 Certificate Transparency（CT）公開紀錄" />
+                                    </CheckBox>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2">
+                            <Border Style="{StaticResource CardStyle}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="win-acme" />
+                                    <TextBlock Style="{StaticResource CaptionStyle}" Text="自動偵測現有版本；也可下載經測試版本或指定既有的 wacs.exe。" />
+                                    <TextBlock Margin="0,15,0,6" FontWeight="SemiBold" Text="wacs.exe 路徑" />
+                                    <TextBox Text="{Binding WinAcmePath, UpdateSourceTrigger=PropertyChanged}" />
+                                    <WrapPanel Margin="0,10,0,0">
+                                        <Button Margin="0,0,8,6" Command="{Binding BrowseWinAcmeCommand}" Content="選擇檔案" />
+                                        <Button Margin="0,0,0,6" Command="{Binding DownloadWinAcmeCommand}" Content="下載建議版本" />
+                                    </WrapPanel>
+                                    <TextBlock Margin="0,5,0,0" Style="{StaticResource CaptionStyle}" Text="下載前會顯示來源與版本，下載後驗證檔案完整性。" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource CardStyle}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="啟動與背景續期" />
+                                    <CheckBox Margin="0,10,0,0" IsChecked="{Binding StartWithWindows}">
+                                        <TextBlock FontWeight="SemiBold" Text="登入 Windows 後自動開啟管理工具" />
+                                    </CheckBox>
+                                    <Border Margin="0,12,0,0" Padding="12" Background="#FFF7E8" CornerRadius="6">
+                                        <TextBlock Foreground="#725018" FontSize="12.5" Text="此勾選只設定目前使用者登入後開啟介面，不需要也不儲存密碼。檢查、簽發與 IIS 變更時才由 Windows UAC 驗證管理員權限。" />
+                                    </Border>
+                                    <TextBlock Margin="0,12,0,0" Style="{StaticResource CaptionStyle}" Text="憑證續期由 win-acme 的 SYSTEM 工作排程執行，即使無人登入也能運作；管理介面不需保持開啟。" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource CardStyle}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="開始前確認" />
+                                    <TextBlock Margin="0,3,0,0" FontWeight="SemiBold" Text="{Binding OverallStatus}" />
+                                    <TextBlock Margin="0,4,0,12" Style="{StaticResource CaptionStyle}" Text="{Binding OverallStatusDetail}" />
+                                    <Border Margin="0,0,0,6" Padding="10,7" Background="{Binding PublicPhaseStatusBackground}" CornerRadius="5">
+                                        <Grid>
+                                            <TextBlock Text="1　公開 DNS／網路" />
+                                            <TextBlock HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding PublicPhaseStatusBrush}" Text="{Binding PublicPhaseStatusText}" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Margin="0,0,0,6" Padding="10,7" Background="{Binding LocalPhaseStatusBackground}" CornerRadius="5">
+                                        <Grid>
+                                            <TextBlock Text="2　本機 IIS／權限" />
+                                            <TextBlock HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding LocalPhaseStatusBrush}" Text="{Binding LocalPhaseStatusText}" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Margin="0,0,0,12" Padding="10,7" Background="{Binding StagingPhaseStatusBackground}" CornerRadius="5">
+                                        <Grid>
+                                            <TextBlock Text="3　Let’s Encrypt Staging" />
+                                            <TextBlock HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding StagingPhaseStatusBrush}" Text="{Binding StagingPhaseStatusText}" />
+                                        </Grid>
+                                    </Border>
+                                    <Button Style="{StaticResource PrimaryButtonStyle}"
+                                            Command="{Binding RunPreflightCommand}"
+                                            Content="執行前兩階段檢查" />
+                                    <TextBlock Margin="0,9,0,0" Style="{StaticResource CaptionStyle}" Text="紅色必要條件未通過時，Staging 與正式申請不會啟用。" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="2  環境檢查">
+                <Grid Margin="0,14,0,12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Style="{StaticResource CardStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitleStyle}" Text="申請前環境檢查" />
+                                <TextBlock Style="{StaticResource CaptionStyle}" Text="綠色＝通過、黃色＝需確認、紅色＝必要條件失敗。正式簽發前仍會以 Let’s Encrypt Staging 做外部驗證。" />
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    Command="{Binding RunPreflightCommand}"
+                                    Content="重新檢查前兩階段" />
+
+                            <UniformGrid Grid.Row="1" Grid.ColumnSpan="2" Columns="3" Margin="0,16,0,0">
+                                <Border Margin="0,0,8,0" Padding="12" Background="{Binding PublicPhaseStatusBackground}" CornerRadius="6">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock FontWeight="SemiBold" Text="1　公開環境" />
+                                            <TextBlock Margin="0,3,0,8" Style="{StaticResource CaptionStyle}" Text="DNS、CAA、IPv4/IPv6、Port 80" />
+                                            <Button HorizontalAlignment="Left" MinHeight="28" Padding="9,3" Command="{Binding RunPublicPreflightCommand}" Content="單獨檢查" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" FontWeight="SemiBold" Foreground="{Binding PublicPhaseStatusBrush}" Text="{Binding PublicPhaseStatusText}" />
+                                    </Grid>
+                                </Border>
+                                <Border Margin="4,0" Padding="12" Background="{Binding LocalPhaseStatusBackground}" CornerRadius="6">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock FontWeight="SemiBold" Text="2　本機環境" />
+                                            <TextBlock Margin="0,3,0,8" Style="{StaticResource CaptionStyle}" Text="IIS、Binding、權限、win-acme" />
+                                            <Button HorizontalAlignment="Left" MinHeight="28" Padding="9,3" Command="{Binding RunLocalPreflightCommand}" Content="單獨檢查" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" FontWeight="SemiBold" Foreground="{Binding LocalPhaseStatusBrush}" Text="{Binding LocalPhaseStatusText}" />
+                                    </Grid>
+                                </Border>
+                                <Border Margin="8,0,0,0" Padding="12" Background="{Binding StagingPhaseStatusBackground}" CornerRadius="6">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock FontWeight="SemiBold" Text="3　Staging 驗證" />
+                                            <TextBlock Margin="0,3,0,8" Style="{StaticResource CaptionStyle}" Text="Let’s Encrypt 外部 ACME 驗證" />
+                                            <Button HorizontalAlignment="Left" MinHeight="28" Padding="9,3" Command="{Binding RunStagingCommand}" Content="執行驗證" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" FontWeight="SemiBold" Foreground="{Binding StagingPhaseStatusBrush}" Text="{Binding StagingPhaseStatusText}" />
+                                    </Grid>
+                                </Border>
+                            </UniformGrid>
+                        </Grid>
+                    </Border>
+
+                    <ListView Grid.Row="1"
+                              Margin="0,0,0,14"
+                              ItemsSource="{Binding CheckItems}"
+                              Background="White"
+                              BorderBrush="{StaticResource BorderBrush}"
+                              BorderThickness="1"
+                              ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+                                <Setter Property="BorderThickness" Value="0,0,0,1" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="18,14">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="42" />
+                                        <ColumnDefinition Width="240" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="130" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="28" Height="28" CornerRadius="14" Background="{Binding StatusBackground}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" Foreground="{Binding StatusBrush}" Text="{Binding StatusIcon}" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                                        <TextBlock Margin="0,3,10,0" Style="{StaticResource CaptionStyle}" Text="{Binding Description}" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2" Margin="12,0" VerticalAlignment="Center" Text="{Binding Result}" />
+                                    <Border Grid.Column="3"
+                                            Style="{StaticResource StatusPillStyle}"
+                                            Background="{Binding StatusBackground}"
+                                            VerticalAlignment="Center">
+                                        <TextBlock Foreground="{Binding StatusBrush}" FontWeight="SemiBold" FontSize="12" Text="{Binding StatusText}" />
+                                    </Border>
+                                    <Button Grid.Column="4"
+                                            MinWidth="82"
+                                            Margin="12,0,0,0"
+                                            Content="如何修正"
+                                            Tag="{Binding}"
+                                            Click="FixSuggestionButton_OnClick">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasFixSuggestion}" Value="False">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock FontWeight="SemiBold" FontSize="16" Text="下一步：Staging 實際驗證" />
+                                <TextBlock Margin="0,4,20,0" Style="{StaticResource CaptionStyle}" Text="正式申請必須依序通過公開環境、本機環境與 Staging；Staging 測試憑證不會安裝到正式 IIS Binding。" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Margin="0,0,10,0" Command="{Binding RunStagingCommand}" Content="執行 Staging 驗證" />
+                                <Button Style="{StaticResource PrimaryButtonStyle}" Command="{Binding RunProductionCommand}" Content="正式申請並安裝" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="3  執行紀錄">
+                <Grid Margin="0,14,0,12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" Style="{StaticResource CardStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitleStyle}" Text="執行紀錄" />
+                                <TextBlock Style="{StaticResource CaptionStyle}" Text="顯示本次操作；完整紀錄亦會寫入 ProgramData 與 Windows Event Log。" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button Margin="0,0,8,0" Command="{Binding OpenLogFolderCommand}" Content="開啟 Log 資料夾" />
+                                <Button Command="{Binding ClearLogCommand}" Content="清除畫面" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    <ListView Grid.Row="1"
+                              ItemsSource="{Binding Logs}"
+                              Background="White"
+                              BorderBrush="{StaticResource BorderBrush}"
+                              BorderThickness="1">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="時間" Width="175" DisplayMemberBinding="{Binding TimestampText}" />
+                                <GridViewColumn Header="層級" Width="90">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock FontWeight="SemiBold" Foreground="{Binding LevelBrush}" Text="{Binding Level}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="訊息" Width="780" DisplayMemberBinding="{Binding Message}" />
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <Border Grid.Row="3" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="24,9">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center" Fill="{StaticResource PrimaryBrush}" />
+                    <TextBlock VerticalAlignment="Center" FontSize="12.5" Text="{Binding OverallStatus}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <ProgressBar Width="90" Height="5" Margin="0,0,10,0" IsIndeterminate="True" />
+                    <TextBlock VerticalAlignment="Center" FontSize="12.5" Foreground="{StaticResource MutedTextBrush}" Text="{Binding BusyMessage}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

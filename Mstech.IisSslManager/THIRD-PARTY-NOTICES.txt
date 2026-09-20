@@ -1,0 +1,15 @@
+MSTECH IIS SSL 自動更新工具 — 第三方元件聲明
+================================================
+
+本工具可依使用者選擇，從官方 GitHub Release 下載並呼叫 win-acme。
+win-acme 並非名世科技有限公司開發的產品。
+
+win-acme
+Copyright 2015 Bryan Livingston and contributors
+Project: https://github.com/win-acme/win-acme
+License: Apache License 2.0
+License text: https://www.apache.org/licenses/LICENSE-2.0
+
+Let's Encrypt 是 Internet Security Research Group (ISRG) 提供的服務。
+使用者必須自行閱讀並同意 Let's Encrypt Subscriber Agreement 及服務條款。
+本工具不代表、代理或隸屬於 Let's Encrypt 或 ISRG。

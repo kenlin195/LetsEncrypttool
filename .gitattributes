@@ -1,0 +1,9 @@
+# Preserve the original bytes (including UTF-8 BOM for Windows PowerShell 5.1).
+* -text
+*.cs diff=csharp
+*.pdf binary
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.ico binary
+*.zip binary
